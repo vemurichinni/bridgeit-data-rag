@@ -20,7 +20,9 @@ Usage
   python ingest_mbox.py --config cfg.yaml mail.mbox --since 2012 --skip-labels Spam,Trash,Promotions
   python ingest_mbox.py --config cfg.yaml mail.mbox --limit 500               # first 500 messages, for a trial
 
-Resumable: threads recorded in --manifest are skipped on rerun.
+Resumable: threads recorded in --manifest are skipped on rerun; a thread that gained
+new messages since its last run (same thread_id, higher message count) is re-embedded,
+which is what makes a nightly incremental sync (see phase3/) safe to run on a growing mailbox.
 """
 from __future__ import annotations
 
@@ -318,12 +320,12 @@ def main() -> None:
         print(f"  {len(records):,} messages → {len(threads):,} threads", file=sys.stderr)
         for n, msgs in enumerate(threads.values(), 1):
             doc = build_document(msgs, account, kb)
-            if manifest.has(doc["source_id"]):
+            if manifest.has(doc["source_id"], version=len(msgs)):
                 skipped_threads += 1; continue
             try:
                 res = sink.write(doc)
                 manifest.record({"source_id": doc["source_id"], "kb": kb, "messages": len(msgs),
-                                 "chunks": len(doc["chunks"]), **res})
+                                 "version": len(msgs), "chunks": len(doc["chunks"]), **res})
                 total_docs += 1; total_chunks += len(doc["chunks"])
             except Exception as e:
                 manifest.record({"source_id": doc["source_id"], "status": "failed", "error": str(e)[:300]})

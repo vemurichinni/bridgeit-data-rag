@@ -66,6 +66,21 @@ class RagflowClient:
             body["parser_config"] = parser_config
         return self._call("POST", "/datasets", json=body)
 
+    def get_dataset(self, dataset_id: str) -> dict | None:
+        for d in self.list_datasets():
+            if d["id"] == dataset_id:
+                return d
+        return None
+
+    def update_dataset(self, dataset_id: str, **fields: Any) -> None:
+        """PUT a partial update (e.g. permission='team'/'me', parser_config={...}).
+
+        Used by Phase 3's access-control and GraphRAG/RAPTOR toggle scripts. Callers that
+        change parser_config should merge onto the dataset's current parser_config first —
+        this call does not merge for you.
+        """
+        self._call("PUT", f"/datasets/{dataset_id}", json=fields)
+
     # ---- documents ------------------------------------------------------
     def upload(self, dataset_id: str, path: Path, display_name: str | None = None) -> dict:
         with path.open("rb") as f:

@@ -1,0 +1,20 @@
+# BridgeIT-Data — Phase 3 access-control policy for access_control.py.
+# Copy to access_policy.local.yaml and adjust before running with --apply.
+#
+# RAGFlow's OSS API only supports a per-dataset `permission`: "me" (creator/owner only)
+# or "team" (everyone on the same RAGFlow team). There is no per-user or per-group ACL —
+# see docs/Phase3-Runbook.md for what that does and doesn't cover, and how the MCP server
+# (mcp_server.py) can add a coarse KB-name allow-list in front of retrieval.
+#
+# Rules are matched top to bottom against the dataset name (fnmatch glob); first match
+# wins. Anything matching no rule gets `default`.
+
+rules:
+  - pattern: "bt-hr-*"
+    permission: me
+  - pattern: "bt-legal-*"
+    permission: me
+  - pattern: "bt-*-confidential*"
+    permission: me
+
+default: team

@@ -7,3 +7,11 @@ pyyaml>=6
 # Phase 2 code chunking (AST-aware). Without these, code falls back to size-based splitting.
 tree-sitter>=0.23
 tree-sitter-language-pack>=0.7
+
+# Phase 3 hardening: MCP retrieval server, GraphRAG/access-control scripts (yaml/requests
+# above cover those). Gmail API incremental sync is optional — only needed if you run
+# phase3/gmail_sync.py instead of periodic Takeout exports.
+mcp>=1.2
+google-api-python-client>=2.100
+google-auth-httplib2>=0.2
+google-auth-oauthlib>=1.2

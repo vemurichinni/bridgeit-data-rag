@@ -13,6 +13,7 @@ Design: **RAGFlow** as the engine (deep PDF/Excel parsing, hybrid BM25 + vector 
 | `phase0/evaluation_set.xlsx` | the gold question set — Questions, Coverage, Runs (Recall@5 / MRR / exact-match), Parser tests |
 | `phase1/` | RAGFlow bulk loader (`load_documents.py`), retrieval evaluation harness (`run_eval.py`), API wrapper, `config.yaml` |
 | `phase2/` | email and code ingesters: `ingest_mbox.py` (threads, quote-stripping, attachments), `ingest_code.py` (tree-sitter AST chunks, SQL procs, MyBatis, commit history), shared `sink.py` and `chunkers/` |
+| `phase3/` | hardening: `incremental_sync.py` (nightly code+mail sync), `gmail_sync.py` (Gmail API incremental pull), `access_control.py` (per-KB permission policy), `enable_graphrag.py` (RAPTOR/GraphRAG toggle), `mcp_server.py` (retrieval as an MCP server for IDE agents), `hooks/post-merge` |
 
 ## Quick start
 
@@ -35,6 +36,12 @@ python phase1/run_eval.py --config phase1/config.local.yaml --xlsx phase0/evalua
 python phase2/ingest_mbox.py --config phase1/config.local.yaml ~/Takeout/Mail/*.mbox \
        --account projects@bridgeit.com --attachments-dir /data/mail-attachments
 python phase2/ingest_code.py --config phase1/config.local.yaml --repos-csv census_out/repos.csv
+
+# Phase 3 — hardening: incremental sync, access control, MCP, GraphRAG (see docs/Phase3-Runbook.md)
+python phase3/incremental_sync.py --config phase1/config.local.yaml --repos-csv census_out/repos.csv \
+       --mail-account projects@bridgeit.com --log phase3/sync.log
+python phase3/access_control.py --config phase1/config.local.yaml --policy phase3/access_policy.local.yaml --status
+BRIDGEIT_RAG_CONFIG=phase1/config.local.yaml python phase3/mcp_server.py
 ```
 
 ## Phases
@@ -42,6 +49,6 @@ python phase2/ingest_code.py --config phase1/config.local.yaml --repos-csv censu
 0. **Census + evaluation set** — know the corpus, pick the worst files, write the 50 questions. `docs/Phase0-Runbook.md`
 1. **RAGFlow stand-up + document load** — KB layout, sample bake-off, bulk load, tune against the eval set. `docs/Phase1-Runbook.md`
 2. **Email threads + code** — mbox ingester with thread grouping, quote-stripping and attachment extraction; tree-sitter chunker for Java / TypeScript, plus SQL procedures, MyBatis statements and commit history. `docs/Phase2-Runbook.md`
-3. **Hardening** — incremental sync, access control, MCP endpoint for IDE agents, GraphRAG for cross-project questions.
+3. **Hardening** — incremental sync (nightly + git hooks + Gmail API), per-KB access control, an MCP endpoint for IDE agents, GraphRAG/RAPTOR for cross-project questions. `docs/Phase3-Runbook.md`
 
-`config.local.yaml`, census outputs and load manifests are git-ignored: they contain API keys and archive paths.
+`config.local.yaml`, census outputs, load manifests, and Phase 3's Gmail OAuth tokens/credentials, sync state, logs and local access policy are git-ignored: they contain API keys, tokens and archive paths.

@@ -108,7 +108,7 @@ git -C /src/repos/<each> pull --quiet && python ingest_code.py --config ... --re
 python ingest_mbox.py --config ... /data/takeout-latest/Mail --account projects@bridgeit.com
 ```
 
-Note that a thread which gained a reply keeps its `thread_id` but gets a new set of messages; the manifest currently treats a known thread as done, so to refresh growing threads either delete their manifest lines or (simpler) let the next full Takeout land in a new account label. Fixing this properly — re-embedding a thread when its message count changes — is a small change to `Manifest.has()` and worth doing once mail volume settles.
+Note that a thread which gained a reply keeps its `thread_id` but gets a new set of messages. As of Phase 3, `Manifest.has()` takes the current message count as a version and `ingest_mbox.py` passes it, so a thread whose count changed since the last run is re-embedded automatically — no manual manifest surgery needed. See `docs/Phase3-Runbook.md`.
 
 ## Exit criteria for Phase 2
 
