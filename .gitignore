@@ -9,6 +9,13 @@ code_manifest.jsonl
 attachments/
 *.jsonl
 eval_results_*.csv
+# Phase 3: Gmail OAuth tokens/credentials, sync state and logs, local access policy
+gmail_credentials.json
+gmail_token*.json
+gmail_sync_state.json
+gmail_incoming/
+access_policy.local.yaml
+phase3/sync*.log
 # python
 __pycache__/
 *.pyc

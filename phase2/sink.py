@@ -45,8 +45,17 @@ class Manifest:
                     rec = json.loads(line)
                     self.done[rec["source_id"]] = rec
 
-    def has(self, source_id: str) -> bool:
-        return self.done.get(source_id, {}).get("status") == "ok"
+    def has(self, source_id: str, version: object = None) -> bool:
+        """True if source_id is recorded ok — and, when version is given, unchanged since.
+
+        A growing email thread keeps its thread_id but gains messages; pass the current
+        message count as `version` so a thread whose count changed is treated as not-done
+        and gets re-embedded (Phase 2's known limitation, fixed here in Phase 3).
+        """
+        rec = self.done.get(source_id, {})
+        if rec.get("status") != "ok":
+            return False
+        return version is None or rec.get("version") == version
 
     def record(self, rec: dict) -> None:
         self.done[rec["source_id"]] = rec

@@ -1,0 +1,33 @@
+# Local model serving for the fully-local deployment profile (docs/Deployment-Options.md).
+# Runs alongside RAGFlow's own docker-compose (a separate project — clone and run it
+# per docs/Phase1-Runbook.md). Serves the embedding model and, optionally, a local
+# chat model for answer generation, so nothing has to leave the machine.
+#
+# Usage:
+#   docker compose -f deploy/docker-compose.ollama.yml up -d
+#   docker exec bridgeit-ollama ollama pull bge-m3
+#   docker exec bridgeit-ollama ollama pull qwen2.5:14b-instruct   # pick a size that fits your RAM/VRAM
+#
+# Then in RAGFlow's UI: Model Providers -> Ollama -> base URL http://host.docker.internal:11434
+# (Linux without host.docker.internal: use the host's LAN IP, or put both containers on the
+# same Docker network and use the service name `ollama` as the hostname instead).
+
+services:
+  ollama:
+    image: ollama/ollama:latest
+    container_name: bridgeit-ollama
+    volumes:
+      - ollama_models:/root/.ollama
+    ports:
+      - "11434:11434"
+    restart: unless-stopped
+    # Uncomment if you have an NVIDIA GPU + the nvidia-container-toolkit installed —
+    # without a GPU, Ollama runs on CPU automatically, just slower.
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - capabilities: ["gpu"]
+
+volumes:
+  ollama_models:

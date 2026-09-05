@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# BridgeIT-Data RAG — Phase 3 incremental sync hook.
+#
+# Install per repo:
+#   cp phase3/hooks/post-merge /path/to/your-repo/.git/hooks/post-merge
+#   chmod +x /path/to/your-repo/.git/hooks/post-merge
+#
+# Fires after every `git pull` (a post-merge, not a fetch) that changes files, and
+# re-indexes just this repo into RAGFlow in the background so `git pull` returns
+# immediately. ingest_code.py keys files by content hash, so only what actually
+# changed gets re-embedded.
+set -euo pipefail
+
+REPO_DIR="$(git rev-parse --show-toplevel)"
+BRIDGEIT_RAG_HOME="${BRIDGEIT_RAG_HOME:-$HOME/bridgeit-data-rag}"
+CONFIG="${BRIDGEIT_RAG_CONFIG:-$BRIDGEIT_RAG_HOME/phase1/config.local.yaml}"
+
+nohup python3 "$BRIDGEIT_RAG_HOME/phase3/incremental_sync.py" \
+    --config "$CONFIG" --repo "$REPO_DIR" --skip-mail \
+    --log "$BRIDGEIT_RAG_HOME/phase3/sync.log" \
+    >> "$BRIDGEIT_RAG_HOME/phase3/sync.hook.log" 2>&1 &
+disown
