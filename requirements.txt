@@ -3,3 +3,7 @@ pypdf>=4
 openpyxl>=3.1
 requests>=2.31
 pyyaml>=6
+
+# Phase 2 code chunking (AST-aware). Without these, code falls back to size-based splitting.
+tree-sitter>=0.23
+tree-sitter-language-pack>=0.7
