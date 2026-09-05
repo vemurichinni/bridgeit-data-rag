@@ -17,6 +17,7 @@ So Phase 2 does the splitting itself and pushes finished chunks into RAGFlow thr
 phase2/
 ├── ingest_mbox.py           Gmail Takeout .mbox → thread documents + per-message chunks
 ├── ingest_code.py           Git repos → per-file documents + AST-level chunks + commit history
+├── load_jsonl.py            load a --jsonl output from another machine into RAGFlow (offline prep → cloud load)
 ├── sink.py                  shared output: RAGFlow (upload + add-chunk + metadata) or JSONL, plus resume manifests
 ├── chunkers/
 │   ├── email_clean.py       quoted-history, signature and disclaimer stripping; HTML → text
@@ -83,6 +84,39 @@ Annotations and Javadoc immediately above a method travel with it. Every chunk i
 Knowledge base: `<prefix>code-<repo>`. Metadata: `repo, path, language, kind, last_commit, last_author, last_date, year, loc`, plus `--project` if you pass one. Files are keyed by content hash in `code_manifest.jsonl`, so re-running after a `git pull` re-indexes only what actually changed — that is the incremental sync mechanism, and it is cheap enough to run nightly from cron.
 
 **Database objects.** Stored procedures and DDL exported from SQL Server (`sys.sql_modules`) and DB2 (`QSYS2.SYSROUTINES`) into `.sql` files are ingested by exactly the same path — point `ingest_code.py` at the export folder. Those files pair with the `/docs/business-logic/` knowledge base already in progress: the `BR-SEQ-*` rules describe the behaviour, these chunks are the implementation.
+
+## Offline prep, cloud load
+
+Both ingesters do the actual thread-grouping / quote-stripping / AST-chunking work in
+Python, locally, before anything touches RAGFlow. Run with `--dry-run --jsonl out.jsonl`
+and no network call to RAGFlow happens at all — the ingester just writes a JSONL file of
+finished, ready-to-embed documents. That makes it possible to prepare everything on a
+machine that has the archive attached (an external drive, a local Takeout export) but no
+route to wherever RAGFlow actually runs, then move just the small JSONL file to the cloud
+and load it from there:
+
+```bash
+# offline machine — the one with the disk / mail export attached
+python ingest_code.py --config ../phase1/config.local.yaml /mnt/archive/orders-service \
+       --dry-run --jsonl code.jsonl
+python ingest_mbox.py --config ../phase1/config.local.yaml ~/Takeout/Mail/*.mbox \
+       --account ops@bridgeit.com --dry-run --jsonl mail.jsonl --attachments-dir ./attachments
+
+# copy code.jsonl, mail.jsonl (and the attachments/ folder, if any) to the cloud machine,
+# e.g. rclone/rsync/scp/aws s3 cp — then, pointed at the real RAGFlow instance:
+python load_jsonl.py --config ../phase1/config.local.yaml code.jsonl mail.jsonl
+python ../phase1/load_documents.py --config ../phase1/config.local.yaml \
+       --census attachments/attachments.csv
+```
+
+`load_jsonl.py` uses the same manifest-with-version mechanism as the live ingesters, so
+it is safe to rerun (resumes, and re-prepared/changed sources are re-loaded, unchanged
+ones are skipped). This does not apply to Phase 1's document loader the same way —
+RAGFlow parses PDFs/Office files server-side on upload, so there is no local chunking
+step to separate out; "prepare locally" there just means selecting the folder (census +
+`load_documents.py --only`) and either uploading straight to the cloud RAGFlow API over
+the network, or — if the offline machine truly has no route to it — copying the selected
+files themselves (not a JSONL) to the cloud machine and running the loader from there.
 
 ## Step 3 — measure
 
