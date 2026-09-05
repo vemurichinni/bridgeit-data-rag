@@ -21,22 +21,33 @@ Design: **RAGFlow** as the engine (deep PDF/Excel parsing, hybrid BM25 + vector 
 ```bash
 pip install -r requirements.txt
 
-# Phase 0 — run where the archive is visible
+# Step 0 — stand up RAGFlow (its own repo/compose — see docs/Phase1-Runbook.md) and,
+# for a fully-local deployment, local models alongside it (see docs/Deployment-Options.md):
+docker compose -f deploy/docker-compose.ollama.yml up -d
+docker exec bridgeit-ollama ollama pull bge-m3
+docker exec bridgeit-ollama ollama pull qwen2.5:14b-instruct   # optional local generation model
+cp phase1/config.yaml phase1/config.local.yaml     # fill in base_url, api_key, model names
+
+# Phase 0 — run where the archive is visible (an attached disk works fine)
 python phase0/census/census_files.py /path/to/archive --out census_out
 python phase0/census/census_mbox.py  /path/to/Takeout/Mail --out census_out
 python phase0/census/census_git.py   /path/to/repos --out census_out
 python phase0/census/census_report.py --out census_out --gpu
 
-# Phase 1 — after RAGFlow is up (see docs/Phase1-Runbook.md)
-cp phase1/config.yaml phase1/config.local.yaml     # fill in base_url, api_key, model names
+# Phase 1 — bulk-load documents, then measure (see docs/Phase1-Runbook.md)
 python phase1/load_documents.py --config phase1/config.local.yaml --census census_out/files.csv --dry-run
 python phase1/load_documents.py --config phase1/config.local.yaml --census census_out/files.csv
 python phase1/run_eval.py --config phase1/config.local.yaml --xlsx phase0/evaluation_set.xlsx --label baseline
 
-# Phase 2 — email threads and source code (see docs/Phase2-Runbook.md)
+# Phase 2 — email threads and source code, straight into RAGFlow (see docs/Phase2-Runbook.md)
 python phase2/ingest_mbox.py --config phase1/config.local.yaml ~/Takeout/Mail/*.mbox \
        --account projects@bridgeit.com --attachments-dir /data/mail-attachments
 python phase2/ingest_code.py --config phase1/config.local.yaml --repos-csv census_out/repos.csv
+
+# Phase 2 alternate — prepare offline (no RAGFlow reachable), load from wherever it runs:
+python phase2/ingest_code.py --config phase1/config.local.yaml /mnt/archive/some-repo \
+       --dry-run --jsonl code.jsonl
+python phase2/load_jsonl.py --config phase1/config.local.yaml code.jsonl   # run where RAGFlow is reachable
 
 # Phase 3 — hardening: incremental sync, access control, MCP, GraphRAG (see docs/Phase3-Runbook.md)
 python phase3/incremental_sync.py --config phase1/config.local.yaml --repos-csv census_out/repos.csv \
