@@ -5,10 +5,17 @@ ragflow:
   base_url: "http://localhost"            # RAGFlow UI/API host (port 80 by default; use http://host:9380 if you exposed the API port)
   api_key: "ragflow-XXXXXXXX"             # UI → avatar (top right) → API → API Key → Create
   # Embedding model name exactly as it appears in RAGFlow's Model providers page after you add it.
-  # BGE-M3 via Ollama is the self-hosted default recommended in the RAG design doc.
+  # BGE-M3 via Ollama is the self-hosted default recommended in the RAG design doc; swap in a
+  # cloud provider's embedding model name (e.g. a model registered under OpenAI/Voyage/Jina in
+  # RAGFlow's UI) if you'd rather not run embeddings locally. See docs/Deployment-Options.md.
   embedding_model: "bge-m3:latest@Ollama"
-  # Reranker (optional but recommended). Leave empty to disable. Same naming rule.
+  # Reranker (optional but recommended). Leave empty to disable. Same naming rule — local
+  # (Xinference) or a cloud provider both work.
   rerank_model: "bge-reranker-v2-m3@Xinference"
+  # NOTE: the generation LLM that writes the final cited answer is NOT configured here — it's
+  # set per Chat Assistant in RAGFlow's own UI (Model Providers, then the assistant's model
+  # dropdown), local (Ollama) or cloud (Claude/OpenAI/...) independently of the settings above.
+  # See docs/Deployment-Options.md for the full local-vs-cloud picture and how to switch.
 
 # How folders map to knowledge bases (RAGFlow "datasets").
 # strategy: top_folder  → one KB per first-level folder under each census root (per project)
