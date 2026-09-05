@@ -4,6 +4,10 @@ config.local.yaml
 # census / load outputs (contain archive paths and hashes)
 census_out/
 load_manifest.jsonl
+mbox_manifest.jsonl
+code_manifest.jsonl
+attachments/
+*.jsonl
 eval_results_*.csv
 # python
 __pycache__/

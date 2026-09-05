@@ -35,6 +35,7 @@ import yaml
 from ragflow_client import RagflowClient, RagflowError
 
 FILE_RE = re.compile(r"([\w\-. ()&]+\.(?:pdf|docx?|xlsx?|xlsm|csv|pptx?|txt|md|eml|msg|html?|sql|java|ts|xml|json))", re.I)
+QUOTED_RE = re.compile(r"['\u2018\u2019\"\u201c\u201d]([^'\u2018\u2019\"\u201c\u201d]{6,120})['\u2018\u2019\"\u201c\u201d]")
 
 
 def norm(s: str) -> str:
@@ -42,7 +43,20 @@ def norm(s: str) -> str:
 
 
 def expected_file(src: str) -> str:
+    """The file name a correct answer must be cited from.
+
+    Phase 1 sources name a file. Phase 2 sources often name an email thread instead
+    ("Gmail, thread 'Re: Release 2.3 go-live'") or a repo path with a method — so fall
+    back to a quoted phrase, which Phase 2 puts into the document title (the thread
+    subject, or repo__path), and then to a bare repo/path fragment.
+    """
     m = FILE_RE.search(src or "")
+    if m:
+        return m.group(1).strip().lower()
+    m = QUOTED_RE.search(src or "")
+    if m:
+        return re.sub(r"^(re|fw|fwd)\s*:\s*", "", m.group(1).strip(), flags=re.I).lower()
+    m = re.search(r"([\w.-]+/[\w./-]+)", src or "")
     return m.group(1).strip().lower() if m else ""
 
 
@@ -104,7 +118,11 @@ def main() -> None:
             docname = (c.get("document_keyword") or c.get("docnm_kwd") or "").lower()
             top_docs.append(docname)
             # display names carry the relative path with '__' separators; compare on the file name only
-            if exp_file and not rank and (exp_file in docname or docname.split("__")[-1] == exp_file):
+            # Phase 2 titles are "repo__path__file.md" or "<date> <thread subject>.md";
+            # normalise both sides so a path, a file name or a thread subject all match.
+            flat = docname.replace("__", "/").replace(".md", "")
+            if exp_file and not rank and (exp_file in docname or exp_file in flat
+                                          or docname.split("__")[-1] == exp_file):
                 rank = i
             if exp_snip and exp_snip in norm(c.get("content", "")):
                 exact = 1
