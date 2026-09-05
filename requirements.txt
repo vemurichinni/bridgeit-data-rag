@@ -1,0 +1,5 @@
+# Phase 0 census (optional hazard checks) and Phase 1 loader / evaluation
+pypdf>=4
+openpyxl>=3.1
+requests>=2.31
+pyyaml>=6

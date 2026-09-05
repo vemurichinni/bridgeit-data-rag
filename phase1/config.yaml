@@ -1,0 +1,66 @@
+# BridgeIT-Data — Phase 1 loader / evaluation configuration
+# Copy to config.local.yaml, fill in the two secrets, and pass --config config.local.yaml.
+
+ragflow:
+  base_url: "http://localhost"            # RAGFlow UI/API host (port 80 by default; use http://host:9380 if you exposed the API port)
+  api_key: "ragflow-XXXXXXXX"             # UI → avatar (top right) → API → API Key → Create
+  # Embedding model name exactly as it appears in RAGFlow's Model providers page after you add it.
+  # BGE-M3 via Ollama is the self-hosted default recommended in the RAG design doc.
+  embedding_model: "bge-m3:latest@Ollama"
+  # Reranker (optional but recommended). Leave empty to disable. Same naming rule.
+  rerank_model: "bge-reranker-v2-m3@Xinference"
+
+# How folders map to knowledge bases (RAGFlow "datasets").
+# strategy: top_folder  → one KB per first-level folder under each census root (per project)
+#           root        → one KB per census root
+#           single      → everything into one KB named `single_name`
+knowledge_bases:
+  strategy: top_folder
+  single_name: "archive-all"
+  name_prefix: "bt-"                       # KB names become bt-<folder>; keep short, RAGFlow shows them in the UI
+  # Tables (xlsx/csv) go to a sibling KB "<name>-tables" using the 'table' chunk method,
+  # because row-level chunking and layout chunking cannot share one KB in RAGFlow.
+  split_tables: true
+  # Emails (.eml) go to "<name>-mail" with the 'email' chunk method.
+  split_email: true
+
+# Chunking per family. chunk_method values are RAGFlow's; parser_config keys are only honoured by 'naive'.
+chunking:
+  documents:
+    chunk_method: naive
+    parser_config:
+      chunk_token_num: 512
+      delimiter: "\n"
+      layout_recognize: true               # DeepDoc layout + table recognition (slower, much better on PDFs)
+      html4excel: false
+      task_page_size: 12
+      raptor: { use_raptor: false }         # phase 3 option
+      graphrag: { use_graphrag: false }     # phase 3 option
+      parent_child: { use_parent_child: true }   # small chunks for matching, parent returned for context
+  tables:
+    chunk_method: table
+    parser_config: {}
+  email:
+    chunk_method: email
+    parser_config: {}
+
+# File selection
+files:
+  include_ext: [pdf, docx, doc, pptx, ppt, xlsx, xls, csv, txt, md, html, htm, eml, msg, json, png, jpg, jpeg, tif, tiff]
+  max_size_mb: 200
+  skip_duplicates: true                    # by sha256 from files.csv — the first path wins, others are recorded in the manifest
+  # Only load rows from files.csv whose path starts with one of these (empty = all). Useful for loading one project first.
+  only_prefixes: []
+
+# Metadata written to each document (used by metadata_condition filters at query time)
+metadata:
+  fields: [project, year, ext, family, source_path, sha256, root]
+
+# Evaluation defaults (run_eval.py)
+eval:
+  page_size: 5                             # Hit@5
+  similarity_threshold: 0.1
+  vector_similarity_weight: 0.3            # 0.3 = keyword-heavy hybrid; raise toward 0.7 for semantic-heavy
+  top_k: 1024
+  keyword: true                            # enable keyword-boost in RAGFlow retrieval
+  use_rerank: true

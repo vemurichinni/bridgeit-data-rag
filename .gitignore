@@ -1,0 +1,14 @@
+# secrets and local config
+config.local.yaml
+*.env
+# census / load outputs (contain archive paths and hashes)
+census_out/
+load_manifest.jsonl
+eval_results_*.csv
+# python
+__pycache__/
+*.pyc
+.venv/
+# editors
+.idea/
+.vscode/
