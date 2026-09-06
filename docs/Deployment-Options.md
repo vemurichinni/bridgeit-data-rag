@@ -24,6 +24,10 @@ set once in its UI, and every script here is unaffected by which one you pick.
 
 ## Profile A — fully local (nothing leaves the machine)
 
+On Windows, follow `docs/Windows-WSL2-Setup.md` for the WSL2/Docker Desktop prerequisites
+first — it covers this whole profile end to end, including fixes for the WSL/Docker
+errors that actually come up in practice. On Linux/Mac the steps below are enough.
+
 1. Deploy RAGFlow itself (its own repo, `docker-compose up -d`) — see `docs/Phase1-Runbook.md`.
 2. Bring up the local model server:
    ```bash
