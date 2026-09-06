@@ -4,6 +4,8 @@ Company-wide retrieval system over the project archive since 2009 — documents,
 
 Design: **RAGFlow** as the engine (deep PDF/Excel parsing, hybrid BM25 + vector search on Elasticsearch, grounded citations) plus a small custom ingestion pipeline for email threads and code. Full rationale in [docs/RAG-System-Recommendation.md](docs/RAG-System-Recommendation.md).
 
+Setting up on Windows? Start with [docs/Windows-WSL2-Setup.md](docs/Windows-WSL2-Setup.md) — WSL2, Docker Desktop, Python venv and RAGFlow/Ollama, including fixes for the WSL/Docker errors people actually hit — then come back to the Quick start below.
+
 ## Layout
 
 | path | what |
