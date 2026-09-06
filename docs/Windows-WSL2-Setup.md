@@ -114,6 +114,33 @@ docker compose -f deploy/docker-compose.ollama.yml up -d
 docker exec bridgeit-ollama ollama pull bge-m3
 docker exec bridgeit-ollama ollama pull qwen2.5:14b-instruct   # size this to your GPU's VRAM — see docs/Deployment-Options.md
 ```
+
+**Validate it actually works before moving on** — a container that's "Up" doesn't mean
+the model runs; test the embedding endpoint directly:
+```bash
+curl http://localhost:11434/api/embeddings -d '{"model": "bge-m3", "prompt": "test sentence"}'
+```
+This should return a JSON object with a 1024-number `"embedding"` array. If instead you
+get `{"error":"llama-server process has terminated: signal: segmentation fault"}`, this
+is llama.cpp's CUDA backend crashing on an unsupported GPU architecture — seen on very
+new GPU generations (e.g. RTX 50-series) where the CUDA kernels Ollama shipped with
+don't yet recognize the card's compute capability. Force CPU-only until an Ollama
+release with confirmed support for your GPU lands, by adding this to the `ollama`
+service in `deploy/docker-compose.ollama.yml`:
+```yaml
+services:
+  ollama:
+    environment:
+      - CUDA_VISIBLE_DEVICES=
+```
+then `docker compose -f deploy/docker-compose.ollama.yml down && ... up -d` (a full
+`down`+`up`, not just `up -d`, to guarantee the container is recreated — `docker exec
+bridgeit-ollama env | grep -i cuda` should show `CUDA_VISIBLE_DEVICES=` before you
+retest). At the corpus sizes this repo targets, CPU-only embedding is entirely
+workable — see the sizing discussion in `docs/RAG-System-Recommendation.md` — it's the
+chat/generation model that will feel slow on CPU, so prefer a smaller one (e.g.
+`qwen2.5:7b-instruct`) until GPU support is confirmed working.
+
 In RAGFlow's UI → Model Providers → add Ollama, base URL `http://host.docker.internal:11434`
 (this resolves correctly on Docker Desktop for Windows). Register `bge-m3` as an
 embedding model and your chosen chat model, then create an API key (avatar → API →

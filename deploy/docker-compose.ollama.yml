@@ -16,6 +16,13 @@ services:
   ollama:
     image: ollama/ollama:latest
     container_name: bridgeit-ollama
+    # If the embedding/chat model crashes with "llama-server process has terminated:
+    # signal: segmentation fault" on a very new GPU (its CUDA compute capability isn't
+    # yet recognized by this Ollama build's kernels), force CPU-only until a release
+    # with confirmed support lands — set CUDA_VISIBLE_DEVICES= (empty) below and remove
+    # the GPU reservation. See docs/Windows-WSL2-Setup.md step 6 for the full diagnosis.
+    # environment:
+    #   - CUDA_VISIBLE_DEVICES=
     volumes:
       - ollama_models:/root/.ollama
     ports:
